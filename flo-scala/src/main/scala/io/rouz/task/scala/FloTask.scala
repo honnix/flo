@@ -17,6 +17,8 @@ trait TaskBuilder0[Z] {
   def processWithContext(code: TaskContext => Value[Z]): Task[Z]
   def in[A](task: => Task[A]): TaskBuilder1[A, Z]
   def ins[A](tasks: => List[Task[A]]): TaskBuilder1[List[A], Z]
+
+  def curried: TaskBuilderC0[Z]
 }
 
 trait TaskBuilder1[A, Z] {
@@ -36,6 +38,23 @@ trait TaskBuilder2[A, B, Z] {
 trait TaskBuilder3[A, B, C, Z] {
   def process(code: (A,B,C) => Z): Task[Z]
   def processWithContext(code: TaskContext => (A,B,C) => Value[Z]): Task[Z]
+}
+
+trait TaskBuilderC0[Z] {
+  def in[A](task: => Task[A]): TaskBuilderC[A, Z, Z]
+  def ins[A](tasks: => List[Task[A]]): TaskBuilderC[List[A], Z, Z]
+}
+
+trait TaskBuilderC[A, Y, Z] {
+  def process(code: A => Y): Task[Z]
+  def in[B](task: => Task[B]): TaskBuilderC[B, A => Y, Z]
+  def ins[B](tasks: => List[Task[B]]): TaskBuilderC[List[B], A => Y, Z]
+}
+
+trait TaskBuilderCV[A, Y, Z] {
+  def process(code: TaskContext => A => Y): Task[Z]
+  def in[B](task: => Task[B]): TaskBuilderC[B, A => Y, Z]
+  def ins[B](tasks: => List[Task[B]]): TaskBuilderC[List[B], A => Y, Z]
 }
 
 class TB[Z: ClassTag](val name: String, val args: AnyRef*) extends TaskBuilder0[Z] { self =>
@@ -63,6 +82,33 @@ class TB[Z: ClassTag](val name: String, val args: AnyRef*) extends TaskBuilder0[
     type JA = java.util.List[A]
     val convA: JA => List[A] = a => JavaConversions.iterableAsScalaIterable(a).toList
     val builder = self.builder.ins(javaList(tasks))
+  }
+
+  override def curried: TaskBuilderC0[Z] = new BuilderC0[Z] {
+    val builder = self.builder.curried
+  }
+}
+
+trait BuilderC0[Z] extends TaskBuilderC0[Z] { self =>
+
+  import Util._
+
+  val builder: JTB.TaskBuilderC0[Z]
+
+  override def in[A](task: => Task[A]): TaskBuilderC[A, Z, Z] = new BuilderC[A, Z, Z] {
+    override type JA = A
+    override type JY = Z
+    override val builder: JTB.TaskBuilderC[JA, JY, Z] = self.builder.in(f0(task))
+    override val convA: JA => A = identity
+    override val convY: Z => JY = identity
+  }
+
+  override def ins[A](tasks: => List[Task[A]]): TaskBuilderC[List[A], Z, Z] = new BuilderC[List[A], Z, Z] {
+    override type JA = java.util.List[A]
+    override type JY = Z
+    override val builder: JTB.TaskBuilderC[JA, JY, Z] = self.builder.ins(javaList(tasks))
+    override val convA: JA => List[A] = a => JavaConversions.iterableAsScalaIterable(a).toList
+    override val convY: Z => JY = identity
   }
 }
 
