@@ -34,6 +34,8 @@ object Examples {
     s"world $arg"
   }
 
+  val metaKey: MetaKey[String] = MetaKey.create("meta")
+
   def hello: Task[String] = defTask[String]() dsl (
     $ ┬ world(0)
       ╞ List(world(7), world(14))
@@ -46,6 +48,8 @@ object Examples {
     // upstream dependencies
     in hello
     in world(7)
+
+    meta (metaKey, "meta key value is foo")
 
     // we'll publish this endpoint when the task is done
     op Publisher("MyEndpoint")
@@ -114,7 +118,10 @@ object Publisher {
 
 class Publisher(val endpointId: String) extends OpProvider[Pub] {
   def provide(tc: TaskContext): Pub = new Pub {
-    def pub(uri: String): Unit = println(s"Publishing $uri to $endpointId")
+    def pub(uri: String): Unit = {
+      println(s"Publishing $uri to $endpointId")
+      println(tc.currentTask.get.getMeta(Examples.metaKey))
+    }
   }
 
   override def onSuccess(task: Task[_], z: Any): Unit =

@@ -66,6 +66,16 @@ private[dsl] trait Builder{{arity}}[{{typeArgsNumA}}, Z] extends TaskBuilder{{ar
     ))
   {{^iter.isLast}}
 
+  override def meta[ET](key: MetaKey[ET], value: ET): TaskBuilder{{arity}}[{{typeArgsNumA}}, Z] =
+    new Builder{{arity}}[{{typeArgsNumA}}, Z] {
+      type J{{arity}} = self.J{{arity}}
+      val c{{arity}}: J{{arity}} => A{{arity}} = self.c{{arity}}
+      {{^iter.isFirst}}
+      val p: self.p.type = self.p
+      {{/iter.isFirst}}
+      val builder = self.builder.meta(key, value)
+    }
+
   override def op[A{{arityPlus}}](opProvider: OpProvider[A{{arityPlus}}]): TaskBuilder{{arityPlus}}[{{typeArgsNumA}}, A{{arityPlus}}, Z] =
     new Builder{{arityPlus}}[{{typeArgsNumA}}, A{{arityPlus}}, Z] {
       type J{{arityPlus}} = A{{arityPlus}}

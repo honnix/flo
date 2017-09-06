@@ -1,6 +1,8 @@
 package io.rouz.scratch;
 
 import io.rouz.flo.Task;
+import io.rouz.flo.TaskBuilder;
+import io.rouz.flo.MetaKey;
 import io.rouz.flo.proc.Exec;
 import io.rouz.flo.processor.RootTask;
 
@@ -31,6 +33,9 @@ import io.rouz.flo.processor.RootTask;
  */
 public class Scratch {
 
+  static final MetaKey<String> STRING_VAL = MetaKey.create("String val");
+  static final MetaKey<Integer> INT_VAL = MetaKey.create("Integer val");
+
   public static void main(String[] args) throws Exception {
     Task<Exec.Result> foo = exec("foobar", 123);
     foo.inputsInOrder()
@@ -43,7 +48,9 @@ public class Scratch {
     Task<String> task1 = MyTask.create(parameter);
     Task<Integer> task2 = Adder.create(number, number + 2);
 
-    return Task.named("exec", "/bin/sh").ofType(Exec.Result.class)
+    final TaskBuilder<Exec.Result> exec = Task.named("exec", "/bin/sh").ofType(Exec.Result.class);
+    return exec
+        .meta(STRING_VAL, "hello world")
         .in(() -> task1)
         .in(() -> task2)
         .process(Exec.exec((str, i) -> args("/bin/sh", "-c", "\"echo " + i + "\"")));

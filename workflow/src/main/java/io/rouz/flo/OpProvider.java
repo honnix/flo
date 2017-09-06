@@ -1,7 +1,10 @@
 package io.rouz.flo;
 
+import java.util.Collections;
+import java.util.List;
+
 /**
- * Provider interface for operation objects that will be injected into tasks.
+ * Provider interface for operation objects that will be injected into a {@link Task}.
  *
  * <p>An operator is an object that is aware of the lifecycle of a task and can perform
  * operations before and after the task evaluates. A common use case for operators is to be able
@@ -18,6 +21,10 @@ public interface OpProvider<T> {
    * @return An instance of the provided operator type
    */
   T provide(TaskContext taskContext);
+
+  default List<MetaKey.Entry<?>> provideMeta() {
+    return Collections.emptyList();
+  }
 
   /**
    * Will be called just before a task that is using this operator starts evaluating.
